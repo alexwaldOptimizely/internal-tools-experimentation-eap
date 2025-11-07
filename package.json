@@ -1,6 +1,7 @@
 {
   "name": "optimizely-internal-tools",
   "version": "1.0.0",
+  "type": "module",
   "description": "Internal tools for Optimizely teams - JIRA integration via Opal",
   "main": "api/index.ts",
   "scripts": {

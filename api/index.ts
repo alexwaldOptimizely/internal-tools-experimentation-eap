@@ -63,37 +63,39 @@ app.get('/health', async (req, res) => {
 // Discovery endpoint for Opal
 app.get('/discovery', (req, res) => {
   res.json({
-    name: 'optimizely-jira-integration',
-    description: 'Create JIRA tickets in Optimizely\'s internal DHK project',
-    version: '1.0.0',
-    tools: [
+    functions: [
       {
         name: 'create_jira_ticket_DHK',
-        description: 'Create a new JIRA ticket in Optimizely\'s DHK project',
-        parameters: {
-          type: 'object',
-          properties: {
-            summary: {
-              type: 'string',
-              description: 'Brief summary of the ticket'
-            },
-            description: {
-              type: 'string',
-              description: 'Detailed description of the ticket'
-            },
-            issueType: {
-              type: 'string',
-              description: 'Type of issue (defaults to Story)',
-              default: 'Story'
-            },
-            assigneeEmail: {
-              type: 'string',
-              description: 'Email of the assignee (defaults to alex.wald@optimizely.com)',
-              default: 'alex.wald@optimizely.com'
-            }
+        description: 'Create a new JIRA ticket in Optimizely\'s internal DHK project',
+        parameters: [
+          {
+            name: 'summary',
+            type: 'string',
+            description: 'Brief summary of the ticket',
+            required: true
           },
-          required: ['summary']
-        }
+          {
+            name: 'description',
+            type: 'string',
+            description: 'Detailed description of the ticket',
+            required: false
+          },
+          {
+            name: 'issueType',
+            type: 'string',
+            description: 'Type of issue (defaults to Story)',
+            required: false
+          },
+          {
+            name: 'assigneeEmail',
+            type: 'string',
+            description: 'Email of the assignee (defaults to alex.wald@optimizely.com)',
+            required: false
+          }
+        ],
+        endpoint: '/tools/create_jira_ticket_DHK',
+        http_method: 'POST',
+        auth_requirements: ['bearer_token']
       }
     ]
   });

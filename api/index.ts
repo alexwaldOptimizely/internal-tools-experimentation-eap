@@ -68,7 +68,7 @@ app.get('/discovery', (req, res) => {
     version: '1.0.0',
     tools: [
       {
-        name: 'create_jira_ticket',
+        name: 'create_jira_ticket_DHK',
         description: 'Create a new JIRA ticket in Optimizely\'s DHK project',
         parameters: {
           type: 'object',
@@ -100,7 +100,7 @@ app.get('/discovery', (req, res) => {
 });
 
 // Tool execution endpoint (protected with Bearer token)
-app.post('/tools/create_jira_ticket', authenticateBearerToken, async (req, res) => {
+app.post('/tools/create_jira_ticket_DHK', authenticateBearerToken, async (req, res) => {
   try {
     const { summary, description, issueType, assigneeEmail } = req.body;
 
@@ -151,7 +151,7 @@ app.get('/', (req, res) => {
     endpoints: {
       health: '/health',
       discovery: '/discovery',
-      createTicket: '/tools/create_jira_ticket'
+      createTicket: '/tools/create_jira_ticket_DHK'
     }
   });
 });

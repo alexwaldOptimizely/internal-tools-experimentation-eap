@@ -164,5 +164,5 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 // Export for Vercel serverless function
-export default app;
+module.exports = app;
 

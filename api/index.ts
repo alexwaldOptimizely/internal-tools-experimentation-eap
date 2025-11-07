@@ -95,7 +95,7 @@ app.get('/discovery', (req, res) => {
         ],
         endpoint: '/tools/create_jira_ticket_DHK',
         http_method: 'POST',
-        auth_requirements: ['bearer_token']
+        auth_requirements: []
       }
     ]
   });

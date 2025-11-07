@@ -52,7 +52,7 @@ class JiraClient {
       await this.makeRequest('/myself');
       
       // Test project access
-      const project = await this.makeRequest(`/project/${process.env.JIRA_PROJECT_KEY || 'DEX'}`);
+      const project = await this.makeRequest(`/project/${process.env.JIRA_PROJECT_KEY || 'DHK'}`);
       
       return {
         status: 'connected',
@@ -79,7 +79,7 @@ class JiraClient {
     assignee: string;
     url: string;
   }> {
-    const projectKey = process.env.JIRA_PROJECT_KEY || 'DEX';
+    const projectKey = process.env.JIRA_PROJECT_KEY || 'DHK';
     
     // Create the issue
     const issuePayload = {

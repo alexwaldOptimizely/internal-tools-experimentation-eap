@@ -64,12 +64,12 @@ app.get('/health', async (req, res) => {
 app.get('/discovery', (req, res) => {
   res.json({
     name: 'optimizely-jira-integration',
-    description: 'Create JIRA tickets in Optimizely\'s internal DEX project',
+    description: 'Create JIRA tickets in Optimizely\'s internal DHK project',
     version: '1.0.0',
     tools: [
       {
         name: 'create_jira_ticket',
-        description: 'Create a new JIRA ticket in Optimizely\'s DEX project',
+        description: 'Create a new JIRA ticket in Optimizely\'s DHK project',
         parameters: {
           type: 'object',
           properties: {
@@ -121,7 +121,7 @@ app.post('/tools/create_jira_ticket', authenticateBearerToken, async (req, res) 
     res.json({
       success: true,
       ticket: result,
-      message: `Successfully created JIRA ticket ${result.key} in DEX project. The ticket has been assigned to ${result.assignee} and can be viewed at ${result.url}`
+      message: `Successfully created JIRA ticket ${result.key} in DHK project. The ticket has been assigned to ${result.assignee} and can be viewed at ${result.url}`
     });
 
   } catch (error) {

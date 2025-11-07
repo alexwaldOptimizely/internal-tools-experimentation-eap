@@ -63,8 +63,6 @@ app.get('/health', async (req, res) => {
 // Discovery endpoint for Opal
 app.get('/discovery', (req, res) => {
   res.json({
-    name: 'optimizely-jira-integration',
-    version: '1.0.0',
     functions: [
       {
         name: 'create_jira_ticket_DHK',

@@ -103,8 +103,12 @@ app.get('/discovery', (req, res) => {
 // Tool execution endpoint (protected with Bearer token)
 app.post('/tools/create_jira_ticket_DHK', authenticateBearerToken, async (req, res) => {
   try {
+    // Log the request body for debugging
+    console.log('Request body:', JSON.stringify(req.body, null, 2));
+    
     // Opal may send parameters nested in a 'parameters' object or directly in the body
-    const bodyParams = req.body.parameters || req.body;
+    // Try multiple possible formats
+    const bodyParams = req.body.parameters || req.body.arguments || req.body;
     const { summary, description, issueType, assigneeEmail } = bodyParams;
 
     if (!summary) {

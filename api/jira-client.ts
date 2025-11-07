@@ -128,5 +128,20 @@ class JiraClient {
   }
 }
 
-export const jiraClient = new JiraClient();
+// Lazy initialization to avoid crashing if env vars are missing
+let _jiraClient: JiraClient | null = null;
+
+export const jiraClient = {
+  get instance(): JiraClient {
+    if (!_jiraClient) {
+      _jiraClient = new JiraClient();
+    }
+    return _jiraClient;
+  }
+};
+
+// For backward compatibility, export a getter function
+export function getJiraClient(): JiraClient {
+  return jiraClient.instance;
+}
 

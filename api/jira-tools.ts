@@ -32,7 +32,7 @@ export async function createJiraTicket(params: CreateTicketParams): Promise<Jira
     };
 
     // Create the ticket
-    const result = await jiraClient.createIssue(ticketData);
+    const result = await jiraClient.instance.createIssue(ticketData);
     return result;
   } catch (error) {
     // Enhanced error handling with specific guidance

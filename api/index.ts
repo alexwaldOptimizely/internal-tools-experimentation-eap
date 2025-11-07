@@ -45,7 +45,7 @@ const authenticateBearerToken = (req: express.Request, res: express.Response, ne
 app.get('/health', async (req, res) => {
   try {
     // Test JIRA connectivity
-    const healthCheck = await jiraClient.healthCheck();
+    const healthCheck = await jiraClient.instance.healthCheck();
     res.json({
       status: 'healthy',
       timestamp: new Date().toISOString(),

@@ -44,7 +44,9 @@ export async function createJiraTicket(params: CreateTicketParams): Promise<Jira
       } else if (error.message.includes('404')) {
         throw new Error('Project or issue type not found. Please verify the DEX project exists and the issue type is valid.');
       } else if (error.message.includes('400')) {
-        throw new Error('Invalid request data. Please check your ticket summary and description.');
+        // Include the actual JIRA error message for debugging
+        const jiraError = error.message.includes('JIRA API Error') ? error.message : 'Invalid request data';
+        throw new Error(`${jiraError}. Please check your ticket summary, description, project key, and issue type.`);
       } else if (error.message.includes('429')) {
         throw new Error('Rate limit exceeded. Please wait a moment before creating another ticket.');
       } else {

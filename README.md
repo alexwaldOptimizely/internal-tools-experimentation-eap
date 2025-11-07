@@ -1,6 +1,6 @@
 # Optimizely Internal Tools - JIRA Integration
 
-A TypeScript-based tool for creating JIRA tickets in Optimizely's internal DEX project through Opal integration.
+A TypeScript-based tool for creating JIRA tickets in Optimizely's internal DHK project through Opal integration.
 
 ## Overview
 
@@ -8,7 +8,7 @@ This tool provides a seamless way for Optimizely teams to create JIRA tickets di
 
 ## Features
 
-- **JIRA Ticket Creation**: Create tickets in Optimizely's DEX project
+- **JIRA Ticket Creation**: Create tickets in Optimizely's DHK project
 - **Opal Integration**: Seamless integration with Optimizely's Opal instance
 - **Flexible Assignment**: Assign tickets to any Optimizely team member
 - **Health Monitoring**: Built-in health check for JIRA connectivity
@@ -31,7 +31,7 @@ JIRA_BASE_URL=https://optimizely-ext.atlassian.net
 JIRA_USER_EMAIL=alex.wald@optimizely.com
 
 # JIRA Project Settings
-JIRA_PROJECT_KEY=DEX
+JIRA_PROJECT_KEY=DHK
 JIRA_DEFAULT_ISSUE_TYPE=Story
 JIRA_DEFAULT_ASIGNEE_EMAIL=alex.wald@optimizely.com
 ```
@@ -137,7 +137,7 @@ git push -u origin main
 ### Hardcoded Values
 The following values are configured for Optimizely's internal use:
 
-- **Project Key**: `DEX`
+- **Project Key**: `DHK`
 - **Default Issue Type**: `Story`
 - **Default Assignee**: `alex.wald@optimizely.com`
 
@@ -179,7 +179,7 @@ For issues or questions:
 1. Check the health endpoint for JIRA connectivity
 2. Verify environment variables are correctly set
 3. Ensure JIRA permissions are properly configured
-4. Contact Alex Wald for DEX project access issues
+4. Contact Alex Wald for DHK project access issues
 
 ## License
 

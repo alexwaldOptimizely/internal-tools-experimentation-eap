@@ -156,12 +156,13 @@ app.get('/', (req, res) => {
   });
 });
 
-// Start server
+// Start server (only for local development)
 if (process.env.NODE_ENV !== 'production') {
   app.listen(PORT, () => {
     console.log(`Optimizely Internal Tools server running on port ${PORT}`);
   });
 }
 
+// Export for Vercel serverless function
 export default app;
 

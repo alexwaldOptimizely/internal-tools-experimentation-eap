@@ -1,0 +1,5 @@
+node_modules
+auth.json
+.env
+last-run.html
+last-result.txt

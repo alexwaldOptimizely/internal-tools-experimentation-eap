@@ -1,0 +1,23 @@
+name: Thursday Agent
+on:
+  schedule:
+    - cron: "0 14 * * 4"  # 9:00 AM Thursday America/Chicago ≈ 14:00 UTC
+  workflow_dispatch: {}
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: npm ci
+      - run: npx playwright install --with-deps
+      - run: npx ts-node src/scrape-and-summarize.ts
+        env:
+          LOGIN_URL: ${{ secrets.LOGIN_URL }}
+          LOGIN_USER: ${{ secrets.LOGIN_USER }}
+          LOGIN_PASS: ${{ secrets.LOGIN_PASS }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          COMBINE_PROMPT: ${{ secrets.COMBINE_PROMPT }}

@@ -69,13 +69,13 @@ app.get('/discovery', (req, res) => {
         description: 'Create a new JIRA ticket in Optimizely\'s internal DHK project',
         parameters: [
           {
-            name: 'summary',
+            name: 'Summary',
             type: 'string',
             description: 'Brief summary of the ticket',
             required: true
           },
           {
-            name: 'description',
+            name: 'Description',
             type: 'string',
             description: 'Detailed description of the ticket',
             required: false
@@ -109,7 +109,12 @@ app.post('/tools/create_jira_ticket_DHK', authenticateBearerToken, async (req, r
     // Opal may send parameters nested in a 'parameters' object or directly in the body
     // Try multiple possible formats
     const bodyParams = req.body.parameters || req.body.arguments || req.body;
-    const { summary, description, issueType, assigneeEmail } = bodyParams;
+    
+    // Handle both lowercase and capitalized parameter names (Opal may use capitalized)
+    const summary = bodyParams.Summary || bodyParams.summary;
+    const description = bodyParams.Description || bodyParams.description;
+    const issueType = bodyParams.issueType || bodyParams.IssueType;
+    const assigneeEmail = bodyParams.assigneeEmail || bodyParams.AssigneeEmail;
 
     if (!summary) {
       return res.status(400).json({

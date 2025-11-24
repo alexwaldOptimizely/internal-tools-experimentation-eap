@@ -27,24 +27,97 @@ const STANDARD_FIELD_MAP: Record<string, string> = {
 };
 
 /**
+ * Load custom field mappings from environment variable
+ * Format: JSON object with field name variations -> JIRA field ID
+ * Example: {"priority": "priority", "prio": "priority", "storyPoints": "customfield_10016"}
+ */
+function loadCustomFieldMappings(): Record<string, string> {
+  const mappingsEnv = process.env.JIRA_FIELD_MAPPINGS;
+  if (!mappingsEnv) {
+    return {};
+  }
+
+  try {
+    const customMappings = JSON.parse(mappingsEnv);
+    if (typeof customMappings !== 'object' || Array.isArray(customMappings)) {
+      console.warn('JIRA_FIELD_MAPPINGS must be a JSON object, ignoring');
+      return {};
+    }
+    return customMappings;
+  } catch (error) {
+    console.warn('Failed to parse JIRA_FIELD_MAPPINGS, ignoring:', error);
+    return {};
+  }
+}
+
+// Load custom mappings once at module load
+const CUSTOM_FIELD_MAP = loadCustomFieldMappings();
+
+/**
+ * Get the combined field mapping (standard + custom)
+ * Custom mappings override standard mappings if there's a conflict
+ */
+function getFieldMapping(): Record<string, string> {
+  return {
+    ...STANDARD_FIELD_MAP,
+    ...CUSTOM_FIELD_MAP
+  };
+}
+
+/**
+ * Normalizes a field name for lookup (handles common variations)
+ * @param fieldName - Field name to normalize
+ * @returns Normalized field name
+ */
+function normalizeFieldName(fieldName: string): string {
+  return fieldName
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '') // Remove spaces: "story points" -> "storypoints"
+    .replace(/_/g, '')    // Remove underscores: "story_points" -> "storypoints"
+    .replace(/-/g, '');   // Remove hyphens: "story-points" -> "storypoints"
+}
+
+/**
  * Maps a friendly field name to JIRA field ID
- * @param fieldName - Friendly field name (e.g., 'summary', 'assigneeEmail')
- * @returns JIRA field ID (e.g., 'summary', 'assignee')
+ * Supports case-insensitive matching, handles spaces/underscores/hyphens
+ * @param fieldName - Friendly field name (e.g., 'summary', 'assigneeEmail', 'Story Points')
+ * @returns JIRA field ID (e.g., 'summary', 'assignee', 'customfield_10016')
  */
 export function mapFieldNameToId(fieldName: string): string {
-  const normalized = fieldName.toLowerCase().trim();
+  const fieldMapping = getFieldMapping();
   
-  // Check standard field map
-  if (STANDARD_FIELD_MAP[normalized]) {
-    return STANDARD_FIELD_MAP[normalized];
+  // First, try exact match (case-insensitive)
+  const lowerFieldName = fieldName.toLowerCase().trim();
+  if (fieldMapping[lowerFieldName]) {
+    return fieldMapping[lowerFieldName];
   }
   
-  // If it's already a JIRA field ID (starts with customfield_ or is a known field), return as-is
-  if (fieldName.startsWith('customfield_') || STANDARD_FIELD_MAP[fieldName]) {
+  // Try normalized match (handles spaces, underscores, hyphens)
+  const normalized = normalizeFieldName(fieldName);
+  if (fieldMapping[normalized]) {
+    return fieldMapping[normalized];
+  }
+  
+  // Try original field name (in case it's already a JIRA field ID)
+  if (fieldMapping[fieldName]) {
+    return fieldMapping[fieldName];
+  }
+  
+  // If it's already a JIRA field ID (starts with customfield_ or is a known standard field), return as-is
+  if (fieldName.startsWith('customfield_')) {
     return fieldName;
   }
   
-  // Return as-is (might be a custom field name that needs to be resolved)
+  // Check if it's a standard field ID (not in mapping but known)
+  const standardFieldIds = ['summary', 'description', 'assignee', 'issuetype', 'priority', 
+                            'labels', 'components', 'fixVersions', 'versions', 'duedate', 
+                            'reporter', 'environment', 'parent'];
+  if (standardFieldIds.includes(lowerFieldName)) {
+    return lowerFieldName;
+  }
+  
+  // Return as-is (might be a custom field name that needs to be resolved, or invalid)
   return fieldName;
 }
 
@@ -157,5 +230,68 @@ export function formatFieldValue(fieldId: string, value: any): any {
  */
 export function requiresSpecialFormatting(fieldId: string): boolean {
   return fieldId === 'description';
+}
+
+/**
+ * Get suggestions for a field name that wasn't found
+ * Returns similar field names from the mapping
+ * @param fieldName - Field name that wasn't found
+ * @returns Array of suggested field names
+ */
+export function getFieldSuggestions(fieldName: string): string[] {
+  const fieldMapping = getFieldMapping();
+  const normalized = normalizeFieldName(fieldName);
+  const suggestions: string[] = [];
+  
+  // Simple similarity check - find fields that contain parts of the input
+  const inputParts = normalized.split('');
+  
+  for (const [mappedName, fieldId] of Object.entries(fieldMapping)) {
+    const mappedNormalized = normalizeFieldName(mappedName);
+    
+    // Check if the mapped name contains significant parts of the input
+    if (mappedNormalized.includes(normalized) || normalized.includes(mappedNormalized)) {
+      suggestions.push(mappedName);
+    }
+    
+    // Limit suggestions
+    if (suggestions.length >= 3) {
+      break;
+    }
+  }
+  
+  return suggestions.slice(0, 3);
+}
+
+/**
+ * Validates if a field name exists in the mapping
+ * @param fieldName - Field name to validate
+ * @returns Object with isValid flag and suggestions if invalid
+ */
+export function validateFieldName(fieldName: string): {
+  isValid: boolean;
+  mappedFieldId: string;
+  suggestions?: string[];
+} {
+  const fieldMapping = getFieldMapping();
+  const lowerFieldName = fieldName.toLowerCase().trim();
+  const normalized = normalizeFieldName(fieldName);
+  
+  // Check if field exists in mapping
+  if (fieldMapping[lowerFieldName] || fieldMapping[normalized] || fieldMapping[fieldName]) {
+    const fieldId = mapFieldNameToId(fieldName);
+    return {
+      isValid: true,
+      mappedFieldId: fieldId
+    };
+  }
+  
+  // Field not found - get suggestions
+  const suggestions = getFieldSuggestions(fieldName);
+  return {
+    isValid: false,
+    mappedFieldId: fieldName, // Return original as fallback
+    suggestions
+  };
 }
 

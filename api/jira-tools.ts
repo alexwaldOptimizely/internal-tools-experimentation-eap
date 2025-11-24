@@ -1,4 +1,5 @@
 import { jiraClient } from './jira-client';
+import { validateFieldName } from './field-mapper';
 
 export interface CreateTicketParams {
   summary: string;
@@ -43,11 +44,24 @@ export async function createJiraTicket(params: CreateTicketParams): Promise<Jira
       assigneeEmail: params.assigneeEmail || 'alex.wald@optimizely.com'
     };
 
-    // Add any additional fields that were passed
+    // Add any additional fields that were passed and validate them
+    const invalidFields: string[] = [];
     for (const [key, value] of Object.entries(params)) {
       if (!['summary', 'description', 'issueType', 'assigneeEmail'].includes(key) && value !== undefined && value !== null) {
+        // Validate field name (but allow customfield_* fields to pass through)
+        if (!key.startsWith('customfield_')) {
+          const validation = validateFieldName(key);
+          if (!validation.isValid && validation.suggestions && validation.suggestions.length > 0) {
+            invalidFields.push(`${key} (did you mean: ${validation.suggestions.join(', ')}?)`);
+          }
+        }
         allFields[key] = value;
       }
+    }
+
+    // Warn about invalid fields but don't fail (field might still work)
+    if (invalidFields.length > 0) {
+      console.warn('Potentially invalid field names:', invalidFields.join(', '));
     }
 
     // Create the ticket with all fields
@@ -91,6 +105,23 @@ export async function updateJiraTicket(params: UpdateTicketParams): Promise<Upda
     const ticketKeyPattern = /^[A-Z]+-\d+$/;
     if (!ticketKeyPattern.test(params.ticketKey.trim())) {
       throw new Error(`Invalid ticket key format: ${params.ticketKey}. Expected format: PROJECT-123`);
+    }
+
+    // Validate field names and collect suggestions for invalid ones
+    const invalidFields: string[] = [];
+    for (const [fieldName] of Object.entries(params.fields)) {
+      // Skip validation for customfield_* fields
+      if (!fieldName.startsWith('customfield_')) {
+        const validation = validateFieldName(fieldName);
+        if (!validation.isValid && validation.suggestions && validation.suggestions.length > 0) {
+          invalidFields.push(`${fieldName} (did you mean: ${validation.suggestions.join(', ')}?)`);
+        }
+      }
+    }
+
+    // If there are invalid fields, include them in error message
+    if (invalidFields.length > 0) {
+      throw new Error(`Invalid field names: ${invalidFields.join('; ')}. Please check your field names and try again.`);
     }
 
     // Update the ticket

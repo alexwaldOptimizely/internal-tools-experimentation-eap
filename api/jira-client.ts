@@ -1,3 +1,5 @@
+import { markdownToADF, plainTextToADF } from './markdown-converter';
+
 class JiraClient {
   private config: {
     baseUrl: string;
@@ -81,6 +83,17 @@ class JiraClient {
   }> {
     const projectKey = process.env.JIRA_PROJECT_KEY || 'DHK';
     
+    // Convert description to ADF format (supports markdown)
+    let descriptionADF;
+    try {
+      const descriptionText = issueData.description || 'Created via Optimizely Internal Tools';
+      descriptionADF = markdownToADF(descriptionText);
+    } catch (error) {
+      // Fallback to plain text if markdown conversion fails
+      console.warn('Markdown conversion failed, using plain text:', error);
+      descriptionADF = plainTextToADF(issueData.description || 'Created via Optimizely Internal Tools');
+    }
+    
     // Create the issue
     const issuePayload = {
       fields: {
@@ -88,21 +101,7 @@ class JiraClient {
           key: projectKey
         },
         summary: issueData.summary,
-        description: {
-          type: 'doc',
-          version: 1,
-          content: [
-            {
-              type: 'paragraph',
-              content: [
-                {
-                  type: 'text',
-                  text: issueData.description || 'Created via Optimizely Internal Tools'
-                }
-              ]
-            }
-          ]
-        },
+        description: descriptionADF,
         issuetype: {
           name: issueData.issueType
         },

@@ -66,10 +66,32 @@ export function markdownToADF(markdown: string): ADFNode {
 
     // Table detection - check if line contains pipe characters
     if (line.includes('|') && line.split('|').length >= 3) {
-      const cells = line.split('|').map(c => c.trim()).filter(c => c !== '');
+      // Split by pipe and clean up - keep empty cells between pipes for alignment
+      const rawCells = line.split('|');
+      let cells: string[] = [];
+      for (let j = 0; j < rawCells.length; j++) {
+        const cell = rawCells[j].trim();
+        cells.push(cell);
+      }
+      // Remove leading/trailing empty cells (from pipes at start/end of line)
+      while (cells.length > 0 && cells[0] === '') {
+        cells.shift();
+      }
+      while (cells.length > 0 && cells[cells.length - 1] === '') {
+        cells.pop();
+      }
       
-      // Check if this is a table separator row (|---|---| or |---|)
-      const isSeparator = cells.length > 0 && cells.every(cell => /^:?-+:?$/.test(cell));
+      // Skip rows that are clearly malformed (all empty or just separators with no content)
+      if (cells.length === 0 || (cells.length === 1 && cells[0] === '')) {
+        continue;
+      }
+      
+      // Check if this is a table separator row (|---|---| or |:--:| or |:--| or |--:|)
+      // Also handle cases with escaped characters or math symbols
+      const isSeparator = cells.length > 0 && cells.every(cell => {
+        const cleaned = cell.replace(/[\\$]/g, ''); // Remove escape chars and math symbols
+        return /^:?-+:?$/.test(cleaned);
+      });
       
       if (isSeparator) {
         // This is a separator row - if we don't have a table yet, the previous line was the header
@@ -77,20 +99,38 @@ export function markdownToADF(markdown: string): ADFNode {
           // Get the previous line as header
           const prevLine = lines[i - 1].trimEnd();
           if (prevLine.includes('|')) {
-            const headerCells = prevLine.split('|').map(c => c.trim()).filter(c => c !== '');
+            // Parse header cells properly (keep empty cells for alignment)
+            const rawHeaderCells = prevLine.split('|');
+            const headerCells: string[] = [];
+            for (let j = 0; j < rawHeaderCells.length; j++) {
+              headerCells.push(rawHeaderCells[j].trim());
+            }
+            // Remove leading/trailing empty cells
+            while (headerCells.length > 0 && headerCells[0] === '') {
+              headerCells.shift();
+            }
+            while (headerCells.length > 0 && headerCells[headerCells.length - 1] === '') {
+              headerCells.pop();
+            }
             currentTable = [];
             tableHeader = headerCells;
             // Create header row
             const headerRow: ADFNode = {
               type: 'tableRow',
-              content: headerCells.map(cell => ({
-                type: 'tableHeader',
-                attrs: {},
-                content: [{
-                  type: 'paragraph',
-                  content: parseInlineMarkdown(cell)
-                }]
-              }))
+              content: headerCells.map(cell => {
+                const cellContent = cell.trim();
+                return {
+                  type: 'tableHeader',
+                  attrs: {},
+                  content: cellContent ? [{
+                    type: 'paragraph',
+                    content: parseInlineMarkdown(cellContent)
+                  }] : [{
+                    type: 'paragraph',
+                    content: []
+                  }]
+                };
+              })
             };
             currentTable.push(headerRow);
           }
@@ -104,22 +144,28 @@ export function markdownToADF(markdown: string): ADFNode {
         // Start new table - this is the header row
         currentTable = [];
         tableHeader = cells;
-        // Create header row
-        const headerRow: ADFNode = {
-          type: 'tableRow',
-          content: cells.map(cell => ({
-            type: 'tableHeader',
-            attrs: {},
-            content: [{
-              type: 'paragraph',
-              content: parseInlineMarkdown(cell)
-            }]
-          }))
-        };
+          // Create header row
+          const headerRow: ADFNode = {
+            type: 'tableRow',
+            content: cells.map(cell => {
+              const cellContent = cell.trim();
+              return {
+                type: 'tableHeader',
+                attrs: {},
+                content: cellContent ? [{
+                  type: 'paragraph',
+                  content: parseInlineMarkdown(cellContent)
+                }] : [{
+                  type: 'paragraph',
+                  content: []
+                }]
+              };
+            })
+          };
         currentTable.push(headerRow);
       } else {
         // Add data row - ensure same number of cells as header
-        const numCells = Math.max(cells.length, tableHeader?.length || cells.length);
+        const numCells = tableHeader?.length || cells.length;
         const paddedCells = [...cells];
         while (paddedCells.length < numCells) {
           paddedCells.push('');
@@ -127,14 +173,21 @@ export function markdownToADF(markdown: string): ADFNode {
         
         const dataRow: ADFNode = {
           type: 'tableRow',
-          content: paddedCells.slice(0, numCells).map(cell => ({
-            type: 'tableCell',
-            attrs: {},
-            content: [{
-              type: 'paragraph',
-              content: parseInlineMarkdown(cell)
-            }]
-          }))
+          content: paddedCells.slice(0, numCells).map(cell => {
+            // Handle empty cells
+            const cellContent = cell.trim();
+            return {
+              type: 'tableCell',
+              attrs: {},
+              content: cellContent ? [{
+                type: 'paragraph',
+                content: parseInlineMarkdown(cellContent)
+              }] : [{
+                type: 'paragraph',
+                content: []
+              }]
+            };
+          })
         };
         currentTable.push(dataRow);
       }

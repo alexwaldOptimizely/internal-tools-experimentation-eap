@@ -1,5 +1,5 @@
 import express from 'express';
-import { createJiraTicket, updateJiraTicket } from './jira-tools';
+import { createJiraTicket, updateJiraTicket, CreateTicketParams } from './jira-tools';
 import { jiraClient } from './jira-client';
 
 const app = express();
@@ -66,7 +66,7 @@ app.get('/discovery', (req, res) => {
     functions: [
       {
         name: 'create_jira_ticket_DHK',
-        description: 'Create a new JIRA ticket in Optimizely\'s internal DHK project',
+        description: 'Create a new JIRA ticket in Optimizely\'s internal DHK project. Supports all standard fields (summary, description, assigneeEmail, issueType, priority, labels, components, fixVersions, dueDate) and custom fields (use field ID like customfield_10001). Description supports markdown formatting.',
         parameters: [
           {
             name: 'Summary',
@@ -90,6 +90,24 @@ app.get('/discovery', (req, res) => {
             name: 'assigneeEmail',
             type: 'string',
             description: 'Email of the assignee (defaults to alex.wald@optimizely.com)',
+            required: false
+          },
+          {
+            name: 'priority',
+            type: 'string',
+            description: 'Priority name (e.g., High, Medium, Low, Critical)',
+            required: false
+          },
+          {
+            name: 'labels',
+            type: 'array',
+            description: 'Array of label strings',
+            required: false
+          },
+          {
+            name: 'storyPoints',
+            type: 'number',
+            description: 'Story points (use custom field ID if standard field ID doesn\'t work, e.g., customfield_10016)',
             required: false
           }
         ],
@@ -143,12 +161,25 @@ app.post('/tools/create_jira_ticket_DHK', authenticateBearerToken, async (req, r
       });
     }
 
-    const result = await createJiraTicket({
+    // Build ticket data with all fields (including any additional fields passed)
+    const ticketData: CreateTicketParams = {
       summary,
       description: description || '',
       issueType: issueType || 'Story',
       assigneeEmail: assigneeEmail || 'alex.wald@optimizely.com'
-    });
+    };
+
+    // Include any additional fields that were passed (priority, labels, story points, etc.)
+    for (const [key, value] of Object.entries(bodyParams)) {
+      const normalizedKey = key.charAt(0).toLowerCase() + key.slice(1);
+      if (!['summary', 'Summary', 'description', 'Description', 'issueType', 'IssueType', 'assigneeEmail', 'AssigneeEmail'].includes(key) && 
+          !['parameters', 'arguments'].includes(key) &&
+          value !== undefined && value !== null) {
+        ticketData[normalizedKey] = value;
+      }
+    }
+
+    const result = await createJiraTicket(ticketData);
 
     res.json({
       success: true,

@@ -69,12 +69,7 @@ class JiraClient {
     }
   }
 
-  async createIssue(issueData: {
-    summary: string;
-    description: string;
-    issueType: string;
-    assigneeEmail: string;
-  }): Promise<{
+  async createIssue(issueData: Record<string, any>): Promise<{
     key: string;
     summary: string;
     description: string;
@@ -84,32 +79,54 @@ class JiraClient {
   }> {
     const projectKey = process.env.JIRA_PROJECT_KEY || 'DHK';
     
-    // Convert description to ADF format (supports markdown)
-    let descriptionADF;
-    try {
-      const descriptionText = issueData.description || 'Created via Optimizely Internal Tools';
-      descriptionADF = markdownToADF(descriptionText);
-    } catch (error) {
-      // Fallback to plain text if markdown conversion fails
-      console.warn('Markdown conversion failed, using plain text:', error);
-      descriptionADF = plainTextToADF(issueData.description || 'Created via Optimizely Internal Tools');
+    // Build fields object using field mapper
+    const fields: Record<string, any> = {
+      project: {
+        key: projectKey
+      }
+    };
+
+    // Process all fields using the field mapper
+    for (const [fieldName, value] of Object.entries(issueData)) {
+      // Skip null/undefined values
+      if (value === null || value === undefined) {
+        continue;
+      }
+
+      // Map field name to JIRA field ID
+      const fieldId = mapFieldNameToId(fieldName);
+
+      // Handle description specially (convert markdown to ADF)
+      if (requiresSpecialFormatting(fieldId) && typeof value === 'string') {
+        try {
+          fields[fieldId] = markdownToADF(value);
+        } catch (error) {
+          console.warn('Markdown conversion failed for description, using plain text:', error);
+          fields[fieldId] = plainTextToADF(value);
+        }
+      } else {
+        // Format the field value appropriately
+        fields[fieldId] = formatFieldValue(fieldId, value);
+      }
+    }
+
+    // Ensure required fields have defaults
+    if (!fields.summary) {
+      throw new Error('Summary is required');
+    }
+    if (!fields.issuetype) {
+      fields.issuetype = { name: 'Story' };
+    }
+    if (!fields.assignee) {
+      fields.assignee = { emailAddress: 'alex.wald@optimizely.com' };
+    }
+    if (!fields.description) {
+      fields.description = plainTextToADF('Created via Optimizely Internal Tools');
     }
     
     // Create the issue
     const issuePayload = {
-      fields: {
-        project: {
-          key: projectKey
-        },
-        summary: issueData.summary,
-        description: descriptionADF,
-        issuetype: {
-          name: issueData.issueType
-        },
-        assignee: {
-          emailAddress: issueData.assigneeEmail
-        }
-      }
+      fields
     };
 
     const createdIssue = await this.makeRequest('/issue', {
@@ -119,10 +136,10 @@ class JiraClient {
 
     return {
       key: createdIssue.key,
-      summary: issueData.summary,
-      description: issueData.description,
-      issueType: issueData.issueType,
-      assignee: issueData.assigneeEmail,
+      summary: issueData.summary || '',
+      description: issueData.description || '',
+      issueType: issueData.issueType || 'Story',
+      assignee: issueData.assigneeEmail || 'alex.wald@optimizely.com',
       url: `${this.config.baseUrl}/browse/${createdIssue.key}`
     };
   }

@@ -19,7 +19,11 @@ const STANDARD_FIELD_MAP: Record<string, string> = {
   'reporter': 'reporter',
   'reporterEmail': 'reporter',
   'environment': 'environment',
-  'parent': 'parent'
+  'parent': 'parent',
+  'storypoints': 'customfield_10016', // Common story points field ID (may vary by instance)
+  'storyPoints': 'customfield_10016',
+  'story points': 'customfield_10016',
+  'points': 'customfield_10016'
 };
 
 /**

@@ -1,10 +1,11 @@
 import { jiraClient } from './jira-client';
 
-interface CreateTicketParams {
+export interface CreateTicketParams {
   summary: string;
-  description: string;
-  issueType: string;
-  assigneeEmail: string;
+  description?: string;
+  issueType?: string;
+  assigneeEmail?: string;
+  [key: string]: any; // Allow additional fields
 }
 
 interface JiraIssue {
@@ -34,16 +35,23 @@ export async function createJiraTicket(params: CreateTicketParams): Promise<Jira
       throw new Error('Summary is required and cannot be empty');
     }
 
-    // Set defaults
-    const ticketData = {
+    // Extract all fields, not just the basic ones
+    const allFields: Record<string, any> = {
       summary: params.summary.trim(),
       description: params.description || 'Created via Optimizely Internal Tools',
       issueType: params.issueType || 'Story',
       assigneeEmail: params.assigneeEmail || 'alex.wald@optimizely.com'
     };
 
-    // Create the ticket
-    const result = await jiraClient.instance.createIssue(ticketData);
+    // Add any additional fields that were passed
+    for (const [key, value] of Object.entries(params)) {
+      if (!['summary', 'description', 'issueType', 'assigneeEmail'].includes(key) && value !== undefined && value !== null) {
+        allFields[key] = value;
+      }
+    }
+
+    // Create the ticket with all fields
+    const result = await jiraClient.instance.createIssue(allFields);
     return result;
   } catch (error) {
     // Enhanced error handling with specific guidance

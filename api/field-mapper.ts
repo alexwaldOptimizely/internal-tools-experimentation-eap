@@ -27,40 +27,46 @@ const STANDARD_FIELD_MAP: Record<string, string> = {
 };
 
 /**
- * Load custom field mappings from environment variable
- * Format: JSON object with field name variations -> JIRA field ID
- * Example: {"priority": "priority", "prio": "priority", "storyPoints": "customfield_10016"}
+ * Load field mappings from individual environment variables
+ * Each field has its own variable: JIRA_FIELD_SUMMARY, JIRA_FIELD_PRIORITY, etc.
  */
-function loadCustomFieldMappings(): Record<string, string> {
-  const mappingsEnv = process.env.JIRA_FIELD_MAPPINGS;
-  if (!mappingsEnv) {
-    return {};
+function loadFieldMappingsFromEnv(): Record<string, string> {
+  const mappings: Record<string, string> = {};
+  
+  // Map environment variable names to field names
+  const envVarMap: Record<string, string[]> = {
+    'JIRA_FIELD_SUMMARY': ['summary'],
+    'JIRA_FIELD_DESCRIPTION': ['description'],
+    'JIRA_FIELD_PRIORITY': ['priority'],
+    'JIRA_FIELD_STORY_POINTS': ['storyPoints', 'storypoints', 'story points', 'story_points', 'points', 'pts'],
+    'JIRA_FIELD_LABELS': ['labels', 'label']
+  };
+
+  // Load each field mapping from environment variables
+  for (const [envVar, fieldNames] of Object.entries(envVarMap)) {
+    const fieldId = process.env[envVar];
+    if (fieldId && fieldId.trim()) {
+      // Map all variations to the same field ID
+      for (const fieldName of fieldNames) {
+        mappings[fieldName] = fieldId.trim();
+      }
+    }
   }
 
-  try {
-    const customMappings = JSON.parse(mappingsEnv);
-    if (typeof customMappings !== 'object' || Array.isArray(customMappings)) {
-      console.warn('JIRA_FIELD_MAPPINGS must be a JSON object, ignoring');
-      return {};
-    }
-    return customMappings;
-  } catch (error) {
-    console.warn('Failed to parse JIRA_FIELD_MAPPINGS, ignoring:', error);
-    return {};
-  }
+  return mappings;
 }
 
-// Load custom mappings once at module load
-const CUSTOM_FIELD_MAP = loadCustomFieldMappings();
+// Load field mappings once at module load
+const ENV_FIELD_MAP = loadFieldMappingsFromEnv();
 
 /**
- * Get the combined field mapping (standard + custom)
- * Custom mappings override standard mappings if there's a conflict
+ * Get the combined field mapping (standard + environment variables)
+ * Environment variable mappings override standard mappings if there's a conflict
  */
 function getFieldMapping(): Record<string, string> {
   return {
     ...STANDARD_FIELD_MAP,
-    ...CUSTOM_FIELD_MAP
+    ...ENV_FIELD_MAP
   };
 }
 

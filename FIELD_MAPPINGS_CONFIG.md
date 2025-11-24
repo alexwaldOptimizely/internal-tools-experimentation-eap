@@ -2,10 +2,7 @@
 
 ## Overview
 
-The JIRA integration tool supports custom field name mappings via the `JIRA_FIELD_MAPPINGS` environment variable. This allows you to:
-- Map friendly field names to JIRA field IDs
-- Support custom fields with readable names
-- Provide case-insensitive field matching (handled automatically)
+The JIRA integration tool uses individual environment variables for each field. This allows you to configure the JIRA field ID for each field that Opal will send.
 
 ## Configuration
 
@@ -13,91 +10,55 @@ The JIRA integration tool supports custom field name mappings via the `JIRA_FIEL
 
 1. Go to your Vercel project dashboard
 2. Navigate to **Settings** → **Environment Variables**
-3. Add a new environment variable:
-   - **Name**: `JIRA_FIELD_MAPPINGS`
-   - **Value**: JSON object (see format below)
-   - **Environment**: Production, Preview, Development (as needed)
+3. Add the following environment variables:
 
-### Format
-
-The `JIRA_FIELD_MAPPINGS` variable should be a JSON object where:
-- **Key**: Field name variation (what users might type)
-- **Value**: JIRA field ID (what JIRA expects)
-
-```json
-{
-  "priority": "priority",
-  "prio": "priority",
-  "Priority": "priority",
-  "PRIORITY": "priority",
-  "storyPoints": "customfield_10016",
-  "story points": "customfield_10016",
-  "storypoints": "customfield_10016",
-  "points": "customfield_10016",
-  "Story Points": "customfield_10016",
-  "labels": "labels",
-  "label": "labels",
-  "Labels": "labels"
-}
-```
+| Variable Name | Value | Description |
+|--------------|-------|-------------|
+| `JIRA_FIELD_SUMMARY` | `summary` | JIRA field ID for summary |
+| `JIRA_FIELD_DESCRIPTION` | `description` | JIRA field ID for description |
+| `JIRA_FIELD_PRIORITY` | `priority` | JIRA field ID for priority |
+| `JIRA_FIELD_STORY_POINTS` | `customfield_10016` | JIRA field ID for story points (replace with your field ID) |
+| `JIRA_FIELD_LABELS` | `labels` | JIRA field ID for labels |
 
 ### Example Configuration
 
-For a client with custom fields for story points and epic:
+For the first client with standard fields:
 
-```json
-{
-  "priority": "priority",
-  "prio": "priority",
-  "storyPoints": "customfield_10016",
-  "story points": "customfield_10016",
-  "points": "customfield_10016",
-  "epic": "customfield_10017",
-  "Epic Link": "customfield_10017",
-  "epicLink": "customfield_10017"
-}
 ```
+JIRA_FIELD_SUMMARY=summary
+JIRA_FIELD_DESCRIPTION=description
+JIRA_FIELD_PRIORITY=priority
+JIRA_FIELD_STORY_POINTS=customfield_10016
+JIRA_FIELD_LABELS=labels
+```
+
+**Note**: Replace `customfield_10016` with your actual Story Points custom field ID.
 
 ## How It Works
 
-1. **Field Name Normalization**: The system automatically normalizes field names by:
-   - Converting to lowercase
-   - Removing spaces, underscores, and hyphens
-   - Trimming whitespace
-   - This means "storyPoints", "Story Points", "story_points" all work the same
+1. **Field Name Mapping**: The system maps friendly field names to JIRA field IDs:
+   - `summary` → Uses `JIRA_FIELD_SUMMARY` (defaults to `summary` if not set)
+   - `description` → Uses `JIRA_FIELD_DESCRIPTION` (defaults to `description` if not set)
+   - `priority` → Uses `JIRA_FIELD_PRIORITY` (defaults to `priority` if not set)
+   - `storyPoints`, `storypoints`, `story points`, `points`, `pts` → Uses `JIRA_FIELD_STORY_POINTS`
+   - `labels`, `label` → Uses `JIRA_FIELD_LABELS` (defaults to `labels` if not set)
 
-2. **Lookup Process**:
-   - First checks exact match (case-insensitive)
-   - Then checks normalized match (handles spaces/underscores/hyphens)
-   - Falls back to original field name
-   - If still not found, returns the original (may be a valid custom field ID)
+2. **Case Insensitive**: Field names are automatically handled case-insensitively
+   - `Priority`, `priority`, `PRIORITY` all work the same
+   - `storyPoints`, `Story Points`, `STORY_POINTS` all work the same
 
-3. **Case Insensitive**: Field names are automatically handled case-insensitively, so "Priority", "priority", and "PRIORITY" all work.
+3. **Normalization**: Spaces, underscores, and hyphens are automatically normalized
+   - `story points` = `storypoints` = `story_points` = `story-points`
 
-## Standard Fields (Pre-mapped)
-
-These fields are already mapped and don't need to be in `JIRA_FIELD_MAPPINGS`:
-
-- `summary`, `description`
-- `assignee`, `assigneeEmail`
-- `issueType`, `issuetype`
-- `priority`
-- `labels`
-- `components`
-- `fixVersions`, `affectsVersions`
-- `dueDate`, `duedate`
-- `reporter`, `reporterEmail`
-- `environment`, `parent`
-
-You can still add variations/aliases for these in `JIRA_FIELD_MAPPINGS` to override or extend.
+4. **Defaults**: If an environment variable is not set, the system uses standard JIRA field IDs
 
 ## Finding Custom Field IDs
 
-To find custom field IDs in JIRA:
+To find custom field IDs in JIRA (like Story Points):
 
 1. **Via JIRA UI**:
    - Go to JIRA Settings → Issues → Custom Fields
-   - Click on a custom field
+   - Click on the Story Points field
    - The field ID is in the URL: `...customfield_10016...`
 
 2. **Via JIRA API**:
@@ -107,64 +68,61 @@ To find custom field IDs in JIRA:
    ```
    Look for the `id` field in the response.
 
-## Best Practices
+## Standard Field IDs
 
-1. **Use Friendly Names**: Map custom fields to readable names that Opal will use
-   - Example: `"storyPoints"` instead of `"customfield_10016"`
+These are the default values if environment variables are not set:
 
-2. **Keep It Simple**: Only include custom fields - standard fields are already mapped
-   - Standard fields: priority, labels, components, etc. don't need to be included
+- `JIRA_FIELD_SUMMARY` → `summary`
+- `JIRA_FIELD_DESCRIPTION` → `description`
+- `JIRA_FIELD_PRIORITY` → `priority`
+- `JIRA_FIELD_LABELS` → `labels`
 
-3. **Test Your Mappings**:
-   - Verify custom field IDs are correct
-   - Test that Opal can use the friendly names you define
+## Custom Fields
 
-## Example: Complete Configuration
+For custom fields like Story Points, you must set the environment variable:
 
-```json
-{
-  "storyPoints": "customfield_10016",
-  "epic": "customfield_10017",
-  "epicLink": "customfield_10017"
-}
-```
+- `JIRA_FIELD_STORY_POINTS` → `customfield_10016` (replace with your field ID)
 
-This maps:
-- `storyPoints` → `customfield_10016`
-- `epic` → `customfield_10017`
-- `epicLink` → `customfield_10017`
+The system will automatically map these field name variations to your custom field ID:
+- `storyPoints`
+- `storypoints`
+- `story points`
+- `story_points`
+- `story-points`
+- `points`
+- `pts`
 
-Standard fields like `priority`, `labels`, `components` work automatically without being in the mapping.
+## Adding More Fields
+
+To add more fields in the future, you would need to:
+1. Add the environment variable mapping in `api/field-mapper.ts`
+2. Add the environment variable to Vercel
+3. Update this documentation
 
 ## Troubleshooting
 
-### Field Not Found Errors
+### Field Not Working
 
-If a field isn't working:
-
-1. Verify the field name matches what's in `JIRA_FIELD_MAPPINGS`
-2. Check that the custom field ID is correct
+1. Verify the environment variable is set in Vercel
+2. Check that the field ID is correct
 3. Ensure the field exists in your JIRA project
-4. Redeploy after updating the environment variable
+4. Redeploy after updating environment variables
 
-### Custom Fields Not Working
+### Custom Field Not Found
 
-1. Verify the custom field ID is correct
-2. Ensure the field ID starts with `customfield_`
-3. Check that the field exists in your JIRA project
-4. Verify you have permission to set the field
+1. Verify the custom field ID is correct (starts with `customfield_`)
+2. Check that the field exists in your JIRA project
+3. Verify you have permission to set the field
 
 ### Environment Variable Not Loading
 
-1. Check that the JSON is valid (use a JSON validator)
-2. Ensure the variable is set for the correct environment (Production/Preview/Development)
-3. Redeploy after adding/updating the variable
-4. Check Vercel logs for parsing errors
+1. Ensure the variable is set for the correct environment (Production/Preview/Development)
+2. Redeploy after adding/updating the variable
+3. Check Vercel logs for any errors
 
 ## Notes
 
-- Field mappings are loaded once at application startup
-- Changes to `JIRA_FIELD_MAPPINGS` require a redeploy to take effect
-- Custom field IDs (starting with `customfield_`) bypass validation
-- The system is backward compatible - works without `JIRA_FIELD_MAPPINGS` set
-
+- Environment variables are loaded once at application startup
+- Changes require a redeploy to take effect
+- Field names are case-insensitive and handle spaces/underscores/hyphens automatically
+- The system is backward compatible - works with defaults if variables are not set

@@ -1,5 +1,5 @@
 import express from 'express';
-import { createJiraTicket } from './jira-tools';
+import { createJiraTicket, updateJiraTicket } from './jira-tools';
 import { jiraClient } from './jira-client';
 
 const app = express();
@@ -77,7 +77,7 @@ app.get('/discovery', (req, res) => {
           {
             name: 'Description',
             type: 'string',
-            description: 'Detailed description of the ticket',
+            description: 'Detailed description of the ticket (supports markdown)',
             required: false
           },
           {
@@ -94,6 +94,26 @@ app.get('/discovery', (req, res) => {
           }
         ],
         endpoint: '/tools/create_jira_ticket_DHK',
+        httpMethod: 'POST'
+      },
+      {
+        name: 'update_jira_ticket_DHK',
+        description: 'Update any field on an existing JIRA ticket in Optimizely\'s internal DHK project. Supports updating summary, description, assignee, issue type, priority, labels, and any custom fields.',
+        parameters: [
+          {
+            name: 'ticketKey',
+            type: 'string',
+            description: 'JIRA ticket key (e.g., DHK-123)',
+            required: true
+          },
+          {
+            name: 'fields',
+            type: 'object',
+            description: 'Object containing fields to update. Supported field names: summary, description (supports markdown), assigneeEmail, issueType, priority, labels (array), components (array), fixVersions (array), dueDate (ISO date string), and any custom field IDs (e.g., customfield_10001). Example: {"summary": "New summary", "assigneeEmail": "user@optimizely.com", "priority": "High"}',
+            required: true
+          }
+        ],
+        endpoint: '/tools/update_jira_ticket_DHK',
         httpMethod: 'POST'
       }
     ]
@@ -154,6 +174,80 @@ app.post('/tools/create_jira_ticket_DHK', authenticateBearerToken, async (req, r
   }
 });
 
+// Tool execution endpoint for updating tickets (protected with Bearer token)
+app.post('/tools/update_jira_ticket_DHK', authenticateBearerToken, async (req, res) => {
+  try {
+    // Log the request body for debugging
+    console.log('Update request body:', JSON.stringify(req.body, null, 2));
+    
+    // Opal may send parameters nested in a 'parameters' object or directly in the body
+    const bodyParams = req.body.parameters || req.body.arguments || req.body;
+    
+    // Handle both lowercase and capitalized parameter names
+    const ticketKey = bodyParams.ticketKey || bodyParams.TicketKey;
+    const fields = bodyParams.fields || bodyParams.Fields || {};
+
+    if (!ticketKey) {
+      return res.status(400).json({
+        error: 'Missing required field: ticketKey',
+        message: 'Please provide a ticket key (e.g., DHK-123)'
+      });
+    }
+
+    if (!fields || Object.keys(fields).length === 0) {
+      return res.status(400).json({
+        error: 'Missing required field: fields',
+        message: 'Please provide at least one field to update'
+      });
+    }
+
+    const result = await updateJiraTicket({
+      ticketKey,
+      fields
+    });
+
+    res.json({
+      success: true,
+      ticket: result,
+      message: `Successfully updated JIRA ticket ${result.key}. Updated fields: ${result.updatedFields.join(', ')}. View at ${result.url}`
+    });
+
+  } catch (error) {
+    console.error('Error updating JIRA ticket:', error);
+    
+    if (error instanceof Error) {
+      // Provide specific error messages
+      if (error.message.includes('not found')) {
+        return res.status(404).json({
+          error: 'Ticket not found',
+          message: error.message
+        });
+      } else if (error.message.includes('permission') || error.message.includes('Access denied')) {
+        return res.status(403).json({
+          error: 'Permission denied',
+          message: error.message
+        });
+      } else if (error.message.includes('Invalid') || error.message.includes('format')) {
+        return res.status(400).json({
+          error: 'Invalid request',
+          message: error.message
+        });
+      } else {
+        return res.status(500).json({
+          error: 'Failed to update JIRA ticket',
+          message: error.message,
+          details: 'Please check your JIRA permissions and field values'
+        });
+      }
+    } else {
+      return res.status(500).json({
+        error: 'Unknown error occurred',
+        message: 'An unexpected error occurred while updating the JIRA ticket'
+      });
+    }
+  }
+});
+
 // Root endpoint
 app.get('/', (req, res) => {
   res.json({
@@ -163,7 +257,8 @@ app.get('/', (req, res) => {
     endpoints: {
       health: '/health',
       discovery: '/discovery',
-      createTicket: '/tools/create_jira_ticket_DHK'
+      createTicket: '/tools/create_jira_ticket_DHK',
+      updateTicket: '/tools/update_jira_ticket_DHK'
     }
   });
 });

@@ -1,6 +1,6 @@
 /**
  * Converts markdown text to JIRA's Atlassian Document Format (ADF)
- * Supports: headers, bold, italic, code, lists, links, paragraphs
+ * Supports: headers, bold, italic, code, lists, links, paragraphs, tables
  */
 
 interface ADFNode {
@@ -33,11 +33,13 @@ export function markdownToADF(markdown: string): ADFNode {
   const content: ADFNode[] = [];
   let currentList: ADFNode[] | null = null;
   let listType: 'bulletList' | 'orderedList' | null = null;
+  let currentTable: ADFNode[] | null = null;
+  let tableHeader: string[] | null = null;
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trimEnd();
     
-    // Empty line - close current list if any, add paragraph break
+    // Empty line - close current list/table if any, add paragraph break
     if (line === '') {
       if (currentList) {
         content.push({
@@ -47,7 +49,110 @@ export function markdownToADF(markdown: string): ADFNode {
         currentList = null;
         listType = null;
       }
+      if (currentTable) {
+        content.push({
+          type: 'table',
+          attrs: {
+            isNumberColumnEnabled: false,
+            layout: 'default'
+          },
+          content: currentTable
+        });
+        currentTable = null;
+        tableHeader = null;
+      }
       continue;
+    }
+
+    // Table detection - check if line contains pipe characters
+    if (line.includes('|') && line.split('|').length >= 3) {
+      const cells = line.split('|').map(c => c.trim()).filter(c => c !== '');
+      
+      // Check if this is a table separator row (|---|---| or |---|)
+      const isSeparator = cells.length > 0 && cells.every(cell => /^:?-+:?$/.test(cell));
+      
+      if (isSeparator) {
+        // This is a separator row - if we don't have a table yet, the previous line was the header
+        if (!currentTable && i > 0) {
+          // Get the previous line as header
+          const prevLine = lines[i - 1].trimEnd();
+          if (prevLine.includes('|')) {
+            const headerCells = prevLine.split('|').map(c => c.trim()).filter(c => c !== '');
+            currentTable = [];
+            tableHeader = headerCells;
+            // Create header row
+            const headerRow: ADFNode = {
+              type: 'tableRow',
+              content: headerCells.map(cell => ({
+                type: 'tableHeader',
+                attrs: {},
+                content: [{
+                  type: 'paragraph',
+                  content: parseInlineMarkdown(cell)
+                }]
+              }))
+            };
+            currentTable.push(headerRow);
+          }
+        }
+        // Skip separator row
+        continue;
+      }
+      
+      // This is a table row (header or data)
+      if (!currentTable) {
+        // Start new table - this is the header row
+        currentTable = [];
+        tableHeader = cells;
+        // Create header row
+        const headerRow: ADFNode = {
+          type: 'tableRow',
+          content: cells.map(cell => ({
+            type: 'tableHeader',
+            attrs: {},
+            content: [{
+              type: 'paragraph',
+              content: parseInlineMarkdown(cell)
+            }]
+          }))
+        };
+        currentTable.push(headerRow);
+      } else {
+        // Add data row - ensure same number of cells as header
+        const numCells = Math.max(cells.length, tableHeader?.length || cells.length);
+        const paddedCells = [...cells];
+        while (paddedCells.length < numCells) {
+          paddedCells.push('');
+        }
+        
+        const dataRow: ADFNode = {
+          type: 'tableRow',
+          content: paddedCells.slice(0, numCells).map(cell => ({
+            type: 'tableCell',
+            attrs: {},
+            content: [{
+              type: 'paragraph',
+              content: parseInlineMarkdown(cell)
+            }]
+          }))
+        };
+        currentTable.push(dataRow);
+      }
+      continue;
+    }
+
+    // If we have an open table and hit a non-table line, close the table
+    if (currentTable) {
+      content.push({
+        type: 'table',
+        attrs: {
+          isNumberColumnEnabled: false,
+          layout: 'default'
+        },
+        content: currentTable
+      });
+      currentTable = null;
+      tableHeader = null;
     }
 
     // Header detection (# ## ###)
@@ -141,6 +246,18 @@ export function markdownToADF(markdown: string): ADFNode {
     content.push({
       type: listType!,
       content: currentList
+    });
+  }
+
+  // Close any remaining table
+  if (currentTable) {
+    content.push({
+      type: 'table',
+      attrs: {
+        isNumberColumnEnabled: false,
+        layout: 'default'
+      },
+      content: currentTable
     });
   }
 

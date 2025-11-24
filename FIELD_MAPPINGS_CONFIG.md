@@ -3,10 +3,9 @@
 ## Overview
 
 The JIRA integration tool supports custom field name mappings via the `JIRA_FIELD_MAPPINGS` environment variable. This allows you to:
-- Handle typos and misspellings
-- Support multiple field name variations
-- Map custom field names to JIRA field IDs
-- Provide case-insensitive field matching
+- Map friendly field names to JIRA field IDs
+- Support custom fields with readable names
+- Provide case-insensitive field matching (handled automatically)
 
 ## Configuration
 
@@ -65,17 +64,15 @@ For a client with custom fields for story points and epic:
    - Converting to lowercase
    - Removing spaces, underscores, and hyphens
    - Trimming whitespace
+   - This means "storyPoints", "Story Points", "story_points" all work the same
 
 2. **Lookup Process**:
    - First checks exact match (case-insensitive)
-   - Then checks normalized match
+   - Then checks normalized match (handles spaces/underscores/hyphens)
    - Falls back to original field name
    - If still not found, returns the original (may be a valid custom field ID)
 
-3. **Error Handling**:
-   - Invalid field names trigger suggestions
-   - Error messages show: `"prio" (did you mean: priority?)`
-   - Custom fields (starting with `customfield_`) bypass validation
+3. **Case Insensitive**: Field names are automatically handled case-insensitively, so "Priority", "priority", and "PRIORITY" all work.
 
 ## Standard Fields (Pre-mapped)
 
@@ -112,66 +109,43 @@ To find custom field IDs in JIRA:
 
 ## Best Practices
 
-1. **Include Common Variations**:
-   - Case variations: `"Priority"`, `"PRIORITY"`, `"priority"`
-   - Spacing: `"story points"`, `"storypoints"`, `"story_points"`
-   - Abbreviations: `"prio"` → `"priority"`, `"pts"` → `"storyPoints"`
+1. **Use Friendly Names**: Map custom fields to readable names that Opal will use
+   - Example: `"storyPoints"` instead of `"customfield_10016"`
 
-2. **Handle Typos**:
-   - Common misspellings: `"priorty"` → `"priority"`
-   - Common typos for your team
+2. **Keep It Simple**: Only include custom fields - standard fields are already mapped
+   - Standard fields: priority, labels, components, etc. don't need to be included
 
-3. **Document Custom Fields**:
-   - Map friendly names to custom field IDs
-   - Include multiple variations
-
-4. **Test Your Mappings**:
-   - Test with various case combinations
-   - Test with spaces/underscores/hyphens
+3. **Test Your Mappings**:
    - Verify custom field IDs are correct
+   - Test that Opal can use the friendly names you define
 
 ## Example: Complete Configuration
 
 ```json
 {
-  "priority": "priority",
-  "Priority": "priority",
-  "PRIORITY": "priority",
-  "prio": "priority",
-  "pri": "priority",
-  "labels": "labels",
-  "label": "labels",
-  "Labels": "labels",
   "storyPoints": "customfield_10016",
-  "story points": "customfield_10016",
-  "storypoints": "customfield_10016",
-  "Story Points": "customfield_10016",
-  "points": "customfield_10016",
-  "pts": "customfield_10016",
   "epic": "customfield_10017",
-  "epicLink": "customfield_10017",
-  "Epic Link": "customfield_10017",
-  "components": "components",
-  "component": "components",
-  "Components": "components"
+  "epicLink": "customfield_10017"
 }
 ```
+
+This maps:
+- `storyPoints` → `customfield_10016`
+- `epic` → `customfield_10017`
+- `epicLink` → `customfield_10017`
+
+Standard fields like `priority`, `labels`, `components` work automatically without being in the mapping.
 
 ## Troubleshooting
 
 ### Field Not Found Errors
 
-If you see errors like:
-```
-Invalid field names: prio (did you mean: priority?)
-```
+If a field isn't working:
 
-1. Add the mapping to `JIRA_FIELD_MAPPINGS`:
-   ```json
-   {"prio": "priority"}
-   ```
-
-2. Redeploy or wait for environment variable to update
+1. Verify the field name matches what's in `JIRA_FIELD_MAPPINGS`
+2. Check that the custom field ID is correct
+3. Ensure the field exists in your JIRA project
+4. Redeploy after updating the environment variable
 
 ### Custom Fields Not Working
 

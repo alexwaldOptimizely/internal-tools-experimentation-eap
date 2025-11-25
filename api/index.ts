@@ -115,13 +115,13 @@ app.get('/discovery', (req, res) => {
         httpMethod: 'POST'
       },
       {
-        name: 'update_jira_ticket_DHK',
-        description: 'Update any field on an existing JIRA ticket in Optimizely\'s internal DHK project. Supports updating summary, description, assignee, issue type, priority, labels, and any custom fields.',
+        name: 'update_jira_ticket_with_fields',
+        description: 'Update any field on an existing JIRA ticket. Supports updating summary, description, assignee, issue type, priority, labels, and any custom fields.',
         parameters: [
           {
             name: 'ticketKey',
             type: 'string',
-            description: 'JIRA ticket key (e.g., DHK-123)',
+            description: 'JIRA ticket key (e.g., DTO-123)',
             required: true
           },
           {
@@ -131,7 +131,7 @@ app.get('/discovery', (req, res) => {
             required: true
           }
         ],
-        endpoint: '/tools/update_jira_ticket_DHK',
+        endpoint: '/tools/update_jira_ticket_with_fields',
         httpMethod: 'POST'
       }
     ]
@@ -206,7 +206,7 @@ app.post('/tools/create_jira_ticket_with_fields', authenticateBearerToken, async
 });
 
 // Tool execution endpoint for updating tickets (protected with Bearer token)
-app.post('/tools/update_jira_ticket_DHK', authenticateBearerToken, async (req, res) => {
+app.post('/tools/update_jira_ticket_with_fields', authenticateBearerToken, async (req, res) => {
   try {
     // Log the request body for debugging
     console.log('Update request body:', JSON.stringify(req.body, null, 2));
@@ -289,7 +289,7 @@ app.get('/', (req, res) => {
       health: '/health',
       discovery: '/discovery',
       createTicket: '/tools/create_jira_ticket_with_fields',
-      updateTicket: '/tools/update_jira_ticket_DHK'
+      updateTicket: '/tools/update_jira_ticket_with_fields'
     }
   });
 });

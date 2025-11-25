@@ -24,7 +24,7 @@ Implemented the ability to update any field on JIRA tickets created by this tool
 - Provides detailed error messages
 
 ### 4. API Endpoint (`api/index.ts`)
-- Added `POST /tools/update_jira_ticket_DHK` endpoint
+- Added `POST /tools/update_jira_ticket_with_fields` endpoint
 - Protected with Bearer token authentication
 - Updated discovery endpoint to include new tool
 
@@ -148,7 +148,7 @@ To find custom field IDs in JIRA:
 
 ### Test Update Endpoint
 ```bash
-curl -X POST https://your-app.vercel.app/tools/update_jira_ticket_DHK \
+curl -X POST https://your-app.vercel.app/tools/update_jira_ticket_with_fields \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer MySecretToken123!" \
   -d '{
@@ -165,7 +165,7 @@ curl -X POST https://your-app.vercel.app/tools/update_jira_ticket_DHK \
 curl https://your-app.vercel.app/discovery
 ```
 
-The discovery endpoint will now show both `create_jira_ticket_with_fields` and `update_jira_ticket_DHK` tools.
+The discovery endpoint will now show both `create_jira_ticket_with_fields` and `update_jira_ticket_with_fields` tools.
 
 ## Next Steps
 

@@ -51,7 +51,7 @@ After deployment:
 
 3. **Test Ticket Creation** (with Bearer token):
    ```bash
-   curl -X POST https://your-app.vercel.app/tools/create_jira_ticket \
+   curl -X POST https://your-app.vercel.app/tools/create_jira_ticket_with_fields \
      -H "Content-Type: application/json" \
      -H "Authorization: Bearer MySecretToken123!" \
      -d '{

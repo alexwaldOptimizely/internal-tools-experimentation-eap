@@ -65,7 +65,7 @@ app.get('/discovery', (req, res) => {
   res.json({
     functions: [
       {
-        name: 'create_jira_ticket',
+        name: 'create_jira_ticket_with_fields',
         description: 'Create a new JIRA ticket with custom fields. Supports all standard fields (summary, description, assigneeEmail, issueType, priority, labels, components, fixVersions, dueDate) and custom fields (use field ID like customfield_10001). Description supports markdown formatting.',
         parameters: [
           {
@@ -111,7 +111,7 @@ app.get('/discovery', (req, res) => {
             required: false
           }
         ],
-        endpoint: '/tools/create_jira_ticket',
+        endpoint: '/tools/create_jira_ticket_with_fields',
         httpMethod: 'POST'
       },
       {
@@ -139,7 +139,7 @@ app.get('/discovery', (req, res) => {
 });
 
 // Tool execution endpoint (protected with Bearer token)
-app.post('/tools/create_jira_ticket', authenticateBearerToken, async (req, res) => {
+app.post('/tools/create_jira_ticket_with_fields', authenticateBearerToken, async (req, res) => {
   try {
     // Log the request body for debugging
     console.log('Request body:', JSON.stringify(req.body, null, 2));
@@ -288,7 +288,7 @@ app.get('/', (req, res) => {
     endpoints: {
       health: '/health',
       discovery: '/discovery',
-      createTicket: '/tools/create_jira_ticket',
+      createTicket: '/tools/create_jira_ticket_with_fields',
       updateTicket: '/tools/update_jira_ticket_DHK'
     }
   });

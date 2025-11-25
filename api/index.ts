@@ -65,8 +65,8 @@ app.get('/discovery', (req, res) => {
   res.json({
     functions: [
       {
-        name: 'create_jira_ticket_DHK',
-        description: 'Create a new JIRA ticket in Optimizely\'s internal DHK project. Supports all standard fields (summary, description, assigneeEmail, issueType, priority, labels, components, fixVersions, dueDate) and custom fields (use field ID like customfield_10001). Description supports markdown formatting.',
+        name: 'create_jira_ticket',
+        description: 'Create a new JIRA ticket with custom fields. Supports all standard fields (summary, description, assigneeEmail, issueType, priority, labels, components, fixVersions, dueDate) and custom fields (use field ID like customfield_10001). Description supports markdown formatting.',
         parameters: [
           {
             name: 'Summary',
@@ -111,7 +111,7 @@ app.get('/discovery', (req, res) => {
             required: false
           }
         ],
-        endpoint: '/tools/create_jira_ticket_DHK',
+        endpoint: '/tools/create_jira_ticket',
         httpMethod: 'POST'
       },
       {
@@ -139,7 +139,7 @@ app.get('/discovery', (req, res) => {
 });
 
 // Tool execution endpoint (protected with Bearer token)
-app.post('/tools/create_jira_ticket_DHK', authenticateBearerToken, async (req, res) => {
+app.post('/tools/create_jira_ticket', authenticateBearerToken, async (req, res) => {
   try {
     // Log the request body for debugging
     console.log('Request body:', JSON.stringify(req.body, null, 2));
@@ -184,7 +184,7 @@ app.post('/tools/create_jira_ticket_DHK', authenticateBearerToken, async (req, r
     res.json({
       success: true,
       ticket: result,
-      message: `Successfully created JIRA ticket ${result.key} in DHK project. The ticket has been assigned to ${result.assignee} and can be viewed at ${result.url}`
+      message: `Successfully created JIRA ticket ${result.key}. The ticket has been assigned to ${result.assignee} and can be viewed at ${result.url}`
     });
 
   } catch (error) {
@@ -288,7 +288,7 @@ app.get('/', (req, res) => {
     endpoints: {
       health: '/health',
       discovery: '/discovery',
-      createTicket: '/tools/create_jira_ticket_DHK',
+      createTicket: '/tools/create_jira_ticket',
       updateTicket: '/tools/update_jira_ticket_DHK'
     }
   });

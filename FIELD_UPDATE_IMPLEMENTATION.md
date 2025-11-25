@@ -165,7 +165,7 @@ curl -X POST https://your-app.vercel.app/tools/update_jira_ticket_DHK \
 curl https://your-app.vercel.app/discovery
 ```
 
-The discovery endpoint will now show both `create_jira_ticket_DHK` and `update_jira_ticket_DHK` tools.
+The discovery endpoint will now show both `create_jira_ticket` and `update_jira_ticket_DHK` tools.
 
 ## Next Steps
 

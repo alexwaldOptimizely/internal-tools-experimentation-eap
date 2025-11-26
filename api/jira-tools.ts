@@ -36,10 +36,11 @@ export async function createJiraTicket(params: CreateTicketParams): Promise<Jira
     }
 
     // Extract all fields, not just the basic ones
+    const defaultIssueType = process.env.JIRA_DEFAULT_ISSUE_TYPE || 'Story';
     const allFields: Record<string, any> = {
       summary: params.summary.trim(),
       description: params.description || 'Created via Optimizely Internal Tools',
-      issueType: params.issueType || 'Story',
+      issueType: params.issueType || defaultIssueType,
       assigneeEmail: params.assigneeEmail || 'alex.wald@optimizely.com'
     };
 
@@ -63,6 +64,11 @@ export async function createJiraTicket(params: CreateTicketParams): Promise<Jira
       } else if (error.message.includes('404')) {
         throw new Error('Project or issue type not found. Please verify the DHK project exists and the issue type is valid.');
       } else if (error.message.includes('400')) {
+        // Parse JIRA error to check for field screen issues
+        const errorMessage = error.message;
+        if (errorMessage.includes('cannot be set') || errorMessage.includes('not on the appropriate screen')) {
+          throw new Error(`Some fields cannot be set because they are not on the create screen for this issue type. The ticket may have been created with standard fields only. Please check JIRA screen configuration or try updating the ticket after creation. Original error: ${errorMessage}`);
+        }
         // Include the actual JIRA error message for debugging
         const jiraError = error.message.includes('JIRA API Error') ? error.message : 'Invalid request data';
         throw new Error(`${jiraError}. Please check your ticket summary, description, project key, and issue type.`);

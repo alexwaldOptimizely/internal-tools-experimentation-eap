@@ -115,7 +115,8 @@ class JiraClient {
       throw new Error('Summary is required');
     }
     if (!fields.issuetype) {
-      fields.issuetype = { name: 'Story' };
+      const defaultIssueType = process.env.JIRA_DEFAULT_ISSUE_TYPE || 'Story';
+      fields.issuetype = { name: defaultIssueType };
     }
     if (!fields.assignee) {
       fields.assignee = { emailAddress: 'alex.wald@optimizely.com' };
@@ -124,7 +125,7 @@ class JiraClient {
       fields.description = plainTextToADF('Created via Optimizely Internal Tools');
     }
     
-    // Create the issue
+    // Create the issue with all fields
     const issuePayload = {
       fields
     };
@@ -134,11 +135,12 @@ class JiraClient {
       body: JSON.stringify(issuePayload)
     });
 
+    const defaultIssueType = process.env.JIRA_DEFAULT_ISSUE_TYPE || 'Story';
     return {
       key: createdIssue.key,
       summary: issueData.summary || '',
       description: issueData.description || '',
-      issueType: issueData.issueType || 'Story',
+      issueType: issueData.issueType || defaultIssueType,
       assignee: issueData.assigneeEmail || 'alex.wald@optimizely.com',
       url: `${this.config.baseUrl}/browse/${createdIssue.key}`
     };

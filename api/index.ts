@@ -83,7 +83,7 @@ function buildDiscoveryParameters() {
     {
       name: 'issueType',
       type: 'string',
-      description: 'Type of issue (defaults to Story)',
+      description: `Type of issue (defaults to ${process.env.JIRA_DEFAULT_ISSUE_TYPE || 'Story'})`,
       required: false
     },
     {
@@ -228,7 +228,7 @@ app.post('/tools/create_jira_ticket_with_fields', authenticateBearerToken, async
     const ticketData: CreateTicketParams = {
       summary,
       description: description || '',
-      issueType: issueType || 'Story',
+      issueType: issueType || process.env.JIRA_DEFAULT_ISSUE_TYPE || 'Story',
       assigneeEmail: assigneeEmail || 'alex.wald@optimizely.com'
     };
 

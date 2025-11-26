@@ -60,57 +60,120 @@ app.get('/health', async (req, res) => {
   }
 });
 
+// Helper function to dynamically build discovery parameters from environment variables
+function buildDiscoveryParameters() {
+  const parameters: Array<{
+    name: string;
+    type: string;
+    description: string;
+    required: boolean;
+  }> = [
+    {
+      name: 'Summary',
+      type: 'string',
+      description: 'Brief summary of the ticket',
+      required: true
+    },
+    {
+      name: 'Description',
+      type: 'string',
+      description: 'Detailed description of the ticket (supports markdown)',
+      required: false
+    },
+    {
+      name: 'issueType',
+      type: 'string',
+      description: 'Type of issue (defaults to Story)',
+      required: false
+    },
+    {
+      name: 'assigneeEmail',
+      type: 'string',
+      description: 'Email of the assignee',
+      required: false
+    },
+    {
+      name: 'priority',
+      type: 'string',
+      description: 'Priority name (e.g., High, Medium, Low, Critical)',
+      required: false
+    },
+    {
+      name: 'labels',
+      type: 'array',
+      description: 'Array of label strings',
+      required: false
+    },
+    {
+      name: 'storyPoints',
+      type: 'number',
+      description: 'Story points',
+      required: false
+    }
+  ];
+
+  // Dynamically add custom fields from JIRA_FIELD_* environment variables
+  // Skip standard fields that are already included above
+  const standardFields = ['SUMMARY', 'DESCRIPTION', 'PRIORITY', 'STORY_POINTS', 'LABELS'];
+  
+  for (const [envVar, fieldId] of Object.entries(process.env)) {
+    if (envVar.startsWith('JIRA_FIELD_') && fieldId && fieldId.trim()) {
+      const fieldNameBase = envVar.replace('JIRA_FIELD_', '');
+      
+      // Skip if it's a standard field we already included
+      if (standardFields.includes(fieldNameBase)) {
+        continue;
+      }
+      
+      // Convert JIRA_FIELD_PRIORITY_SCORE -> priorityScore
+      const fieldName = fieldNameBase
+        .split('_')
+        .map((word, i) => i === 0 ? word.toLowerCase() : word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join('');
+      
+      // Infer type from field name (common patterns)
+      let fieldType = 'string';
+      if (fieldName.toLowerCase().includes('score') || 
+          fieldName.toLowerCase().includes('points') ||
+          fieldName.toLowerCase().includes('value') ||
+          fieldName.toLowerCase().includes('count')) {
+        fieldType = 'number';
+      }
+      
+      // Create a friendly description
+      const friendlyName = fieldNameBase
+        .split('_')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join(' ');
+      
+      parameters.push({
+        name: fieldName,
+        type: fieldType,
+        description: `${friendlyName} (maps to ${fieldId})`,
+        required: false
+      });
+    }
+  }
+
+  return parameters;
+}
+
 // Discovery endpoint for Opal
 app.get('/discovery', (req, res) => {
+  const parameters = buildDiscoveryParameters();
+  
+  // Build description mentioning custom fields if any are configured
+  const customFieldCount = parameters.length - 7; // 7 standard fields
+  const customFieldsNote = customFieldCount > 0 
+    ? ` Additionally supports ${customFieldCount} custom field(s) configured via JIRA_FIELD_* environment variables.`
+    : '';
+  
   res.json({
     functions: [
       {
         name: 'create_jira_ticket_with_fields',
-        description: 'Create a new JIRA ticket with custom fields. Supports all standard fields (summary, description, assigneeEmail, issueType, priority, labels, components, fixVersions, dueDate) and custom fields (use field ID like customfield_10001). Description supports markdown formatting.',
-        parameters: [
-          {
-            name: 'Summary',
-            type: 'string',
-            description: 'Brief summary of the ticket',
-            required: true
-          },
-          {
-            name: 'Description',
-            type: 'string',
-            description: 'Detailed description of the ticket (supports markdown)',
-            required: false
-          },
-          {
-            name: 'issueType',
-            type: 'string',
-            description: 'Type of issue (defaults to Story)',
-            required: false
-          },
-          {
-            name: 'assigneeEmail',
-            type: 'string',
-            description: 'Email of the assignee (defaults to alex.wald@optimizely.com)',
-            required: false
-          },
-          {
-            name: 'priority',
-            type: 'string',
-            description: 'Priority name (e.g., High, Medium, Low, Critical)',
-            required: false
-          },
-          {
-            name: 'labels',
-            type: 'array',
-            description: 'Array of label strings',
-            required: false
-          },
-          {
-            name: 'storyPoints',
-            type: 'number',
-            description: 'Story points (use custom field ID if standard field ID doesn\'t work, e.g., customfield_10016)',
-            required: false
-          }
-        ],
+        description: `Create a new JIRA ticket with custom fields. Supports all standard fields (summary, description, assigneeEmail, issueType, priority, labels, components, fixVersions, dueDate, storyPoints).${customFieldsNote} Description supports markdown formatting.`,
+        parameters: parameters,
         endpoint: '/tools/create_jira_ticket_with_fields',
         httpMethod: 'POST'
       },
